@@ -1,0 +1,9 @@
+# direnv keys its allow/deny hash on the .envrc's absolute path. macOS /tmp is a
+# symlink to /private/tmp, so `direnv allow /tmp/x/.envrc` and `direnv exec
+# /tmp/x` hash different paths and the .envrc is treated as not-allowed. Point
+# TMPDIR at the already-canonical /private/tmp so both see the same path.
+export TMPDIR=/private/tmp
+# macOS/iTerm2 injects __CFBundleIdentifier (a lowercase-named env var) which
+# direnv faithfully dumps; a strict VAR-name check in the systemd-dump test then
+# rejects it. It does not exist in the Linux containers.
+unset __CFBundleIdentifier

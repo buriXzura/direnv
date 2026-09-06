@@ -11,3 +11,13 @@
 
 # for context: https://github.com/Homebrew/homebrew-bundle/pull/552
 Brewfile.lock.json
+
+# ProgramBench course-competition artifacts
+executable
+.programbench/venv/
+.programbench/gitconfig
+.programbench/home/
+.programbench/tests/
+.programbench/run/
+.programbench/shims/
+.programbench/tmux/
