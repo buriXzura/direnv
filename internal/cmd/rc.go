@@ -291,31 +291,24 @@ func (rc *RC) Load(previousEnv Env) (newEnv Env, err error) {
 	return
 }
 
-/// Utils
-
-func eachDir(path string) (paths []string) {
-	path, err := filepath.Abs(path)
+// / Utils
+func eachDir(path string) []string {
+	abs, err := filepath.Abs(path)
 	if err != nil {
-		return
+		return nil
 	}
 
-	paths = []string{path}
-
-	if path == "/" {
-		return
-	}
-
-	for i := len(path) - 1; i >= 0; i-- {
-		if path[i] == os.PathSeparator {
-			path = path[:i]
-			if path == "" {
-				path = "/"
-			}
-			paths = append(paths, path)
+	paths := []string{abs}
+	for {
+		parent := filepath.Dir(abs)
+		if parent == abs { // Reached the root directory (e.g., "/" or "C:\")
+			break
 		}
+		paths = append(paths, parent)
+		abs = parent
 	}
 
-	return
+	return paths
 }
 
 func fileExists(path string) bool {

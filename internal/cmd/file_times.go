@@ -70,6 +70,7 @@ func (times *FileTimes) NewTime(path string, modtime int64, exists bool) (err er
 	if time == nil {
 		newTimes := append(*times.list, FileTime{Path: path})
 		times.list = &newTimes
+		// burixzura potential implantation of a bug
 		time = &((*times.list)[len(*times.list)-1])
 	}
 

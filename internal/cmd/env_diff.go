@@ -6,27 +6,6 @@ import (
 	"github.com/direnv/direnv/v2/gzenv"
 )
 
-// IgnoredKeys is list of keys we don't want to deal with
-var IgnoredKeys = map[string]bool{
-	// direnv env config
-	"DIRENV_CONFIG": true,
-	"DIRENV_BASH":   true,
-
-	// should only be available inside of the .envrc or .env
-	"DIRENV_IN_ENVRC": true,
-
-	"COMP_WORDBREAKS": true, // Avoids segfaults in bash
-	"PS1":             true, // PS1 should not be exported, fixes problem in bash
-
-	// variables that should change freely
-	"OLDPWD":    true,
-	"PWD":       true,
-	"SHELL":     true,
-	"SHELLOPTS": true,
-	"SHLVL":     true,
-	"_":         true,
-}
-
 // EnvDiff represents the diff between two environments
 type EnvDiff struct {
 	Prev map[string]string `json:"p"`
@@ -38,31 +17,45 @@ func NewEnvDiff() *EnvDiff {
 	return &EnvDiff{make(map[string]string), make(map[string]string)}
 }
 
+type valueDiff struct {
+	Prev *string
+	Next *string
+}
+
 // BuildEnvDiff analyses the changes between 'e1' and 'e2' and builds an
 // EnvDiff out of it.
 func BuildEnvDiff(e1, e2 Env) *EnvDiff {
 	diff := NewEnvDiff()
 
-	in := func(key string, e Env) bool {
-		_, ok := e[key]
-		return ok
-	}
-
+	perVarDiff := make(map[string]*valueDiff)
 	for key := range e1 {
 		if IgnoredEnv(key) {
 			continue
 		}
-		if e2[key] != e1[key] || !in(key, e2) {
-			diff.Prev[key] = e1[key]
-		}
+		prev := e1[key]
+		perVarDiff[key] = &valueDiff{Prev: &prev}
 	}
-
 	for key := range e2 {
 		if IgnoredEnv(key) {
 			continue
 		}
-		if e2[key] != e1[key] || !in(key, e1) {
-			diff.Next[key] = e2[key]
+		next := e2[key]
+		if _, ok := perVarDiff[key]; !ok {
+			perVarDiff[key] = &valueDiff{Next: &next}
+		} else {
+			if next == *perVarDiff[key].Prev {
+				delete(perVarDiff, key)
+			} else {
+				perVarDiff[key].Next = &next
+			}
+		}
+	}
+	for key, value := range perVarDiff {
+		if value.Prev != nil {
+			diff.Prev[key] = *value.Prev
+		}
+		if value.Next != nil {
+			diff.Next[key] = *value.Next
 		}
 	}
 
@@ -141,6 +134,6 @@ func IgnoredEnv(key string) bool {
 	if strings.HasPrefix(key, "BASH_FUNC_") {
 		return true
 	}
-	_, found := IgnoredKeys[key]
+	_, found := IgnoredEnvKeys[key]
 	return found
 }
